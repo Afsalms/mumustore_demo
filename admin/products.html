@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Products · Mumu admin</title>
+  <link rel="icon" href="../assets/img/favicon.png">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@500;700;800&display=swap">
+  <link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+  <link rel="stylesheet" href="../assets/vendor/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="../assets/css/mumu.css">
+</head>
+<body class="admin-body">
+  <div class="admin-shell">
+    <div id="side"></div>
+    <div>
+      <div id="top"></div>
+      <main class="admin-main">
+        <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+          <div class="chip-row flex-grow-1" id="stockChips" role="group" aria-label="Stock"></div>
+          <a href="product.html?id=new" class="btn btn-pink btn-sm"><i class="bi bi-plus-lg"></i> Add product</a>
+        </div>
+        <div class="card-cute mb-3"><div class="card-body py-3"><div class="row g-2 align-items-end">
+          <div class="col-12 col-lg-5"><div class="search-pill"><i class="bi bi-search"></i><input id="q" type="search" class="form-control" placeholder="Name or SKU" aria-label="Search products"></div></div>
+          <div class="col-6 col-lg-3"><label class="form-label small" for="cat">Category</label><select id="cat" class="form-select"><option value="">All categories</option></select></div>
+          <div class="col-6 col-lg-2"><label class="form-label small" for="vis">Shown in shop</label><select id="vis" class="form-select"><option value="">Any</option><option value="1">Visible</option><option value="0">Hidden</option></select></div>
+          <div class="col-12 col-lg-2"><label class="form-label small" for="sort">Sort</label><select id="sort" class="form-select"><option value="name">Name</option><option value="stock">Stock: lowest</option><option value="price">Price: highest</option><option value="new">Newest</option></select></div>
+        </div></div></div>
+        <div class="small fw-bold text-ink-soft mb-2" id="count" aria-live="polite"></div>
+        <div id="list"></div>
+      </main>
+    </div>
+  </div>
+
+  <script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+  <script src="../assets/js/art.js"></script>
+  <script src="../assets/js/data.js"></script>
+  <script src="../assets/js/store.js" data-base="../"></script>
+  <script src="../assets/js/admin.js"></script>
+  <script>
+    var db = Mumu.adminShell("products", "Products"), $ = function (id) { return document.getElementById(id); };
+    var F = { stock: Mumu.param("stock") || "", q: "", cat: "", vis: "", sort: "name" };
+    $("cat").innerHTML += db.categories.map(function (c) { return '<option value="' + c.id + '">' + c.name + '</option>'; }).join("");
+    function chips() {
+      var defs = [["", "All"], ["ok", "In stock"], ["low", "Low"], ["out", "Out of stock"]];
+      $("stockChips").innerHTML = defs.map(function (d) { var n = d[0] ? db.products.filter(function (p) { return Mumu.stockState(p) === d[0]; }).length : db.products.length; return '<button type="button" class="chip' + (F.stock === d[0] ? " active" : "") + '" data-s="' + d[0] + '">' + d[1] + ' <span class="opacity-75">' + n + '</span></button>'; }).join("");
+    }
+    function render() {
+      var q = F.q.trim().toLowerCase();
+      var rows = db.products.filter(function (p) {
+        if (F.stock && Mumu.stockState(p) !== F.stock) return false;
+        if (F.cat && p.cat !== F.cat) return false;
+        if (F.vis !== "" && String(+p.active) !== F.vis) return false;
+        if (q && (p.name + " " + p.sku).toLowerCase().indexOf(q) === -1) return false;
+        return true;
+      }).sort(function (a, b) { return F.sort === "stock" ? a.stock - b.stock : F.sort === "price" ? b.price - a.price : F.sort === "new" ? b.created - a.created : a.name.localeCompare(b.name); });
+      $("count").textContent = rows.length + " of " + db.products.length + " products";
+      Mumu.responsiveList($("list"), {
+        rows: rows, empty: "No products match.",
+        href: function (p) { return "product.html?id=" + p.id; },
+        cols: [
+          { label: "Product", cell: function (p) { return '<div class="d-flex align-items-center gap-2"><span class="thumb-sm">' + MumuArt.svg(p) + '</span><div><b>' + Mumu.esc(p.name) + '</b><div class="small text-ink-soft">' + p.sku + '</div></div></div>'; } },
+          { label: "Category", cell: function (p) { return Mumu.category(p.cat, db).name; } },
+          { label: "Price", cls: "text-end", cell: function (p) { return Mumu.money(p.price); } },
+          { label: "Stock", cell: function (p) { return Mumu.stockPill(p); } },
+          { label: "Shop", cell: function (p) { return p.active ? '<span class="small fw-bold text-success"><i class="bi bi-eye"></i> Visible</span>' : '<span class="small fw-bold text-ink-soft"><i class="bi bi-eye-slash"></i> Hidden</span>'; } },
+          { label: "", cls: "text-end", cell: function (p) { return '<a class="btn btn-soft btn-sm" href="product.html?id=' + p.id + '">Edit</a>'; } }
+        ],
+        card: function (p) {
+          return '<div class="d-flex align-items-center gap-3"><span class="thumb-sm" style="width:56px;height:56px">' + MumuArt.svg(p) + '</span><div class="flex-grow-1 min-w-0"><b class="d-block text-truncate">' + Mumu.esc(p.name) + '</b><div class="small text-ink-soft fw-bold">' + p.sku + ' · ' + Mumu.category(p.cat, db).name + '</div>' +
+            '<div class="d-flex justify-content-between align-items-center mt-1"><span class="price">' + Mumu.money(p.price) + '</span>' + Mumu.stockPill(p) + '</div>' + (p.active ? "" : '<div class="small fw-bold text-ink-soft"><i class="bi bi-eye-slash"></i> Hidden from shop</div>') + '</div></div>';
+        }
+      });
+    }
+    $("stockChips").addEventListener("click", function (e) { var b = e.target.closest("[data-s]"); if (!b) return; F.stock = b.dataset.s; chips(); render(); });
+    var t; $("q").addEventListener("input", function () { clearTimeout(t); t = setTimeout(function () { F.q = $("q").value; render(); }, 200); });
+    ["cat", "vis", "sort"].forEach(function (k) { $(k).addEventListener("change", function () { F[k] = this.value; render(); }); });
+    chips(); render();
+  </script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in · Mumu</title>
+  <link rel="icon" href="assets/img/favicon.png">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@500;700;800&display=swap">
+  <link rel="stylesheet" href="assets/vendor/bootstrap.min.css">
+  <link rel="stylesheet" href="assets/vendor/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="assets/css/mumu.css">
+</head>
+<body>
+  <div id="shellTop"></div>
+
+  <main class="container py-4 py-md-5" style="max-width:460px">
+    <div class="card-cute text-center">
+      <div class="card-body p-4">
+        <img src="assets/img/logo.png" width="96" height="96" alt="" class="float mb-2">
+        <h1 class="h3 mb-1" id="title">Welcome to Mumu</h1>
+        <p class="fw-bold text-ink-soft small mb-4" id="why">Sign in to track orders and save your favourites.</p>
+
+        <!-- Screen A: the button -->
+        <div id="screenA">
+          <button type="button" class="btn btn-google btn-lg w-100 d-flex align-items-center justify-content-center gap-2" id="googleBtn">
+            <span id="gIcon"></span> Continue with Google
+          </button>
+          <p class="small text-ink-soft mt-3 mb-0">New here? Your account is created automatically the first time you continue.</p>
+          <div id="guestLink"></div>
+        </div>
+
+        <!-- Screen B: demo stand-in for Google's own window -->
+        <form id="screenB" class="text-start d-none" novalidate>
+          <div class="demo-note mb-3"><i class="bi bi-info-circle"></i> <b>Demo only.</b> On the live site Google’s sign-in window opens here and returns the name and email below.</div>
+          <div class="mb-3"><label class="form-label" for="gName">Name on Google account</label><input class="form-control" id="gName" value="Priya Sharma" required></div>
+          <div class="mb-3"><label class="form-label" for="gEmail">Gmail address</label><input class="form-control" id="gEmail" type="email" value="priya.sharma@gmail.com" required><div class="invalid-feedback">Enter an email address.</div></div>
+          <button class="btn btn-pink w-100" type="submit">Sign in</button>
+          <button class="btn btn-link w-100 fw-bold mt-1" type="button" id="back">Back</button>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <div id="shellFoot"></div>
+
+  <script src="assets/vendor/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/art.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script>
+    Mumu.shell("account");
+    var reason = Mumu.param("reason"), next = Mumu.param("next") || "account.html", add = Mumu.param("add");
+    document.getElementById("gIcon").innerHTML = Mumu.googleIcon;
+    if (reason === "wishlist") {
+      document.getElementById("title").textContent = "Save it to your wishlist 💖";
+      var p = add ? Mumu.product(add) : null;
+      document.getElementById("why").textContent = "Create a free account with Google to keep a wishlist" + (p ? " — we’ll save “" + p.name + "” for you." : ".");
+    } else if (reason === "checkout") {
+      document.getElementById("title").textContent = "Almost there!";
+      document.getElementById("why").textContent = "Sign in with Google to check out faster and track your order.";
+      document.getElementById("guestLink").innerHTML = '<div class="divider-dash my-3"></div><a href="checkout.html" class="btn btn-soft w-100" id="asGuest">Continue as guest instead</a>';
+      document.getElementById("asGuest").onclick = function () { Mumu.ss.set("mumu_guest", "1"); };
+    }
+    if (Mumu.user() && !reason) location.replace("account.html");
+
+    // Real build: replace with Google Identity Services (accounts.google.com/gsi/client) and
+    // post the ID token to Django (e.g. django-allauth's Google provider).
+    document.getElementById("googleBtn").onclick = function () {
+      document.getElementById("screenA").classList.add("d-none");
+      document.getElementById("screenB").classList.remove("d-none");
+      document.getElementById("gName").focus();
+    };
+    document.getElementById("back").onclick = function () {
+      document.getElementById("screenB").classList.add("d-none");
+      document.getElementById("screenA").classList.remove("d-none");
+    };
+    document.getElementById("screenB").addEventListener("submit", function (e) {
+      e.preventDefault(); this.classList.add("was-validated"); if (!this.checkValidity()) return;
+      var name = document.getElementById("gName").value.trim(), email = document.getElementById("gEmail").value.trim().toLowerCase();
+      var initial = (name[0] || "M").toUpperCase();
+      var avatar = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#f48cb6"/><text x="20" y="26" font-family="Arial" font-weight="700" font-size="17" fill="#fff" text-anchor="middle">' + initial + '</text></svg>');
+      Mumu.signIn({ name: name, email: email, avatar: avatar, since: Date.now() });
+      Mumu.ss.del("mumu_guest");
+      if (add) { var w = Mumu.wish(); if (w.indexOf(+add) === -1) { Mumu.toggleWish(+add); } }
+      Mumu.flash(reason === "wishlist" ? "Welcome, " + name.split(" ")[0] + "! Saved to your wishlist 💖" : "Welcome, " + name.split(" ")[0] + "! 🐰");
+      Mumu.go(next);
+    });
+  </script>
+</body>
+</html>

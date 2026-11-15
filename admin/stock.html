@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stock alerts · Mumu admin</title>
+  <link rel="icon" href="../assets/img/favicon.png">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@500;700;800&display=swap">
+  <link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+  <link rel="stylesheet" href="../assets/vendor/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="../assets/css/mumu.css">
+</head>
+<body class="admin-body">
+  <div class="admin-shell">
+    <div id="side"></div>
+    <div>
+      <div id="top"></div>
+      <main class="admin-main" style="max-width:1000px">
+        <div class="alert-low p-3 mb-3 d-flex gap-3 align-items-center">
+          <i class="bi bi-exclamation-triangle-fill fs-3" style="color:#c46a12"></i>
+          <div class="small fw-bold" id="summary"></div>
+        </div>
+        <div class="chip-row mb-3" id="chips" role="group" aria-label="Show"></div>
+        <div id="list"></div>
+      </main>
+    </div>
+  </div>
+
+  <script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+  <script src="../assets/js/art.js"></script>
+  <script src="../assets/js/data.js"></script>
+  <script src="../assets/js/store.js" data-base="../"></script>
+  <script src="../assets/js/admin.js"></script>
+  <script>
+    Mumu.adminShell("stock", "Stock alerts");
+    var $ = function (id) { return document.getElementById(id); }, show = "";
+
+    // Units sold in the last 30 days, to help decide how much to reorder.
+    function sold30(db, id) {
+      var from = Date.now() - 30 * 86400000;
+      return db.orders.filter(function (o) { return o.status !== "cancelled" && o.at >= from; }).reduce(function (s, o) { return s + o.items.filter(function (i) { return i.id === id; }).reduce(function (a, i) { return a + i.qty; }, 0); }, 0);
+    }
+    function render() {
+      var db = Mumu.db(), al = db.products.filter(function (p) { return p.active && p.stock <= p.low; });
+      var out = al.filter(function (p) { return p.stock <= 0; });
+      $("summary").innerHTML = al.length ? out.length + ' out of stock · ' + (al.length - out.length) + ' running low. Add a delivery below and the shop updates straight away.' : "Everything is above its alert level 🎉";
+      $("chips").innerHTML = [["", "All alerts", al.length], ["out", "Out of stock", out.length], ["low", "Running low", al.length - out.length]].map(function (c) { return '<button type="button" class="chip' + (show === c[0] ? " active" : "") + '" data-s="' + c[0] + '">' + c[1] + ' <span class="opacity-75">' + c[2] + '</span></button>'; }).join("");
+      var rows = al.filter(function (p) { return !show || Mumu.stockState(p) === show; }).sort(function (a, b) { return a.stock - b.stock; });
+      if (!rows.length) { $("list").innerHTML = '<div class="card-cute"><div class="empty py-4"><p class="fw-bold text-ink-soft mb-0">Nothing to restock here.</p></div></div>'; return; }
+      // Each row carries its own restock form, so this is cards at every width.
+      $("list").innerHTML = rows.map(function (p) {
+        return '<div class="m-card"><div class="row g-2 align-items-center">' +
+          '<div class="col-12 col-md-5 d-flex align-items-center gap-2"><span class="thumb-sm">' + MumuArt.svg(p) + '</span><div class="min-w-0"><a class="fw-bold text-decoration-none d-block text-truncate" style="color:inherit" href="product.html?id=' + p.id + '">' + Mumu.esc(p.name) + '</a><div class="small text-ink-soft fw-bold">' + p.sku + ' · alert at ' + p.low + ' · ' + sold30(db, p.id) + ' sold in 30 days</div></div></div>' +
+          '<div class="col-5 col-md-2">' + Mumu.stockPill(p) + '</div>' +
+          '<form class="col-7 col-md-5 d-flex gap-2 justify-content-end" data-restock="' + p.id + '"><label class="visually-hidden" for="r' + p.id + '">Quantity received</label><input id="r' + p.id + '" class="form-control form-control-sm" style="max-width:110px" type="number" min="1" inputmode="numeric" placeholder="+ qty" required><button class="btn btn-pink btn-sm text-nowrap" type="submit">Add stock</button></form>' +
+          '</div></div>';
+      }).join("");
+    }
+    $("chips").addEventListener("click", function (e) { var b = e.target.closest("[data-s]"); if (b) { show = b.dataset.s; render(); } });
+    $("list").addEventListener("submit", function (e) {
+      var f = e.target.closest("[data-restock]"); if (!f) return; e.preventDefault();
+      var n = parseInt(f.querySelector("input").value, 10); if (!(n > 0)) { f.querySelector("input").focus(); return; }
+      var db = Mumu.db(), p = Mumu.product(f.dataset.restock, db); p.stock += n; Mumu.save(db);
+      Mumu.toast(p.name + ": now " + p.stock + " in stock ✓"); render();
+    });
+    render();
+  </script>
+</body>
+</html>

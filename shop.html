@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shop all · Mumu</title>
+  <link rel="icon" href="assets/img/favicon.png">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@500;700;800&display=swap">
+  <link rel="stylesheet" href="assets/vendor/bootstrap.min.css">
+  <link rel="stylesheet" href="assets/vendor/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="assets/css/mumu.css">
+</head>
+<body>
+  <div id="shellTop"></div>
+
+  <main class="container py-3 py-md-4">
+    <nav aria-label="breadcrumb"><ol class="breadcrumb mb-2"><li class="breadcrumb-item"><a href="index.html">Home</a></li><li class="breadcrumb-item active" id="crumb">Shop all</li></ol></nav>
+    <h1 class="h3 mb-3" id="pageTitle">All the cute things</h1>
+
+    <!-- search + sort -->
+    <div class="d-flex gap-2 mb-3">
+      <div class="search-pill flex-grow-1">
+        <i class="bi bi-search"></i>
+        <input id="search" type="search" class="form-control" placeholder="Search pens, journals, stickers…" aria-label="Search products">
+      </div>
+      <select id="sort" class="form-select w-auto d-none d-lg-block" aria-label="Sort">
+        <option value="featured">Featured</option>
+        <option value="new">Newest</option>
+        <option value="low">Price: low to high</option>
+        <option value="high">Price: high to low</option>
+        <option value="name">Name A–Z</option>
+      </select>
+    </div>
+
+    <!-- category chips -->
+    <div class="chip-row mb-3" id="catChips" role="group" aria-label="Category"></div>
+
+    <div class="row g-4">
+      <!-- Filters: inline collapsible panel on phones, sidebar on desktop -->
+      <aside class="col-12 col-lg-3">
+        <button class="btn btn-soft w-100 d-lg-none d-flex justify-content-between align-items-center" type="button" data-bs-toggle="collapse" data-bs-target="#filters" aria-expanded="false" aria-controls="filters">
+          <span><i class="bi bi-sliders me-1"></i> Filters <span class="badge rounded-pill bg-pink ms-1" id="filterCount" hidden></span></span>
+          <i class="bi bi-chevron-down"></i>
+        </button>
+        <div class="collapse lg-open mt-2 mt-lg-0" id="filters">
+          <div class="filter-panel">
+            <div class="filter-group d-lg-none">
+              <label class="small-caps d-block mb-2" for="sortM">Sort by</label>
+              <select id="sortM" class="form-select">
+                <option value="featured">Featured</option><option value="new">Newest</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option><option value="name">Name A–Z</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <div class="small-caps mb-2">Price</div>
+              <div class="d-flex flex-wrap gap-2" id="priceChips"></div>
+            </div>
+            <div class="filter-group">
+              <div class="small-caps mb-2">Theme</div>
+              <div class="d-flex flex-wrap gap-2" id="themeChips"></div>
+            </div>
+            <div class="filter-group">
+              <div class="small-caps mb-2">Show</div>
+              <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" role="switch" id="fStock"><label class="form-check-label fw-bold small" for="fStock">In stock only</label></div>
+              <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" role="switch" id="fSale"><label class="form-check-label fw-bold small" for="fSale">On sale</label></div>
+              <div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" id="fNew"><label class="form-check-label fw-bold small" for="fNew">New arrivals</label></div>
+            </div>
+            <div class="filter-group">
+              <button class="btn btn-soft btn-sm w-100" id="clearAll" type="button">Clear all filters</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <section class="col-12 col-lg-9">
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+          <span class="fw-bold small text-ink-soft me-1" id="count" aria-live="polite"></span>
+          <div class="d-flex flex-wrap gap-2" id="activeChips"></div>
+        </div>
+        <div class="row g-3 row-cols-2 row-cols-md-3" id="grid"></div>
+        <div class="empty d-none" id="empty">
+          <div class="art" id="emptyArt"></div>
+          <h2 class="h5">No cuties match that 🥺</h2>
+          <p class="text-ink-soft fw-bold small">Try a different word or clear a filter.</p>
+          <button class="btn btn-pink" type="button" onclick="clearAll()">Clear filters</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="shellFoot"></div>
+
+  <script src="assets/vendor/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/art.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script>
+    Mumu.shell("shop");
+    var db = Mumu.db();
+    var PRICES = [["u100", "Under ₹100", 0, 99], ["100", "₹100–299", 100, 299], ["300", "₹300–599", 300, 599], ["600", "₹600+", 600, 1e9]];
+    var emoji = { Bunny: "🐰", Strawberry: "🍓", Cloud: "☁️", Bear: "🐻", Sakura: "🌸", Kitten: "🐱" };
+    var F = { q: "", cat: Mumu.param("cat") || "", price: "", themes: [], stock: false, sale: false, isNew: Mumu.param("tag") === "new", best: Mumu.param("tag") === "bestseller", sort: "featured" };
+    if (Mumu.param("theme")) F.themes = [Mumu.param("theme")];
+    if (Mumu.param("q")) F.q = Mumu.param("q");
+
+    var $ = function (id) { return document.getElementById(id); };
+    $("emptyArt").innerHTML = MumuArt.svg({ art: { type: "eraser", c1: "#f7a8c8", c2: "#fde59a", bg: "#fff8fa" } });
+    $("search").value = F.q; $("fNew").checked = F.isNew;
+    if (location.hash === "#search") setTimeout(function () { $("search").focus(); }, 50);
+
+    function chips() {
+      $("catChips").innerHTML = [{ id: "", name: "All" }].concat(db.categories).map(function (c) {
+        return '<button type="button" class="chip' + (F.cat === c.id ? " active" : "") + '" data-cat="' + c.id + '" aria-pressed="' + (F.cat === c.id) + '">' + c.name + '</button>';
+      }).join("");
+      $("priceChips").innerHTML = PRICES.map(function (p) { return '<button type="button" class="chip' + (F.price === p[0] ? " active" : "") + '" data-price="' + p[0] + '">' + p[1] + '</button>'; }).join("");
+      $("themeChips").innerHTML = db.themes.map(function (t) { var on = F.themes.indexOf(t) > -1; return '<button type="button" class="chip' + (on ? " active" : "") + '" data-theme="' + t + '" aria-pressed="' + on + '">' + emoji[t] + " " + t + '</button>'; }).join("");
+    }
+
+    function apply() {
+      var q = F.q.trim().toLowerCase(), pr = PRICES.filter(function (p) { return p[0] === F.price; })[0];
+      var list = db.products.filter(function (p) {
+        if (!p.active) return false;
+        if (F.cat && p.cat !== F.cat) return false;
+        if (q && (p.name + " " + p.theme + " " + Mumu.category(p.cat, db).name).toLowerCase().indexOf(q) === -1) return false;
+        if (pr && (p.price < pr[2] || p.price > pr[3])) return false;
+        if (F.themes.length && F.themes.indexOf(p.theme) === -1) return false;
+        if (F.stock && p.stock <= 0) return false;
+        if (F.sale && !(p.mrp > p.price)) return false;
+        if (F.isNew && p.tags.indexOf("new") === -1) return false;
+        if (F.best && p.tags.indexOf("bestseller") === -1) return false;
+        return true;
+      });
+      var s = F.sort;
+      list.sort(function (a, b) {
+        if (s === "low") return a.price - b.price;
+        if (s === "high") return b.price - a.price;
+        if (s === "name") return a.name.localeCompare(b.name);
+        if (s === "new") return b.created - a.created;
+        // featured: in-stock first, bestsellers next
+        var ao = a.stock <= 0, bo = b.stock <= 0; if (ao !== bo) return ao ? 1 : -1;
+        return (b.tags.indexOf("bestseller") > -1) - (a.tags.indexOf("bestseller") > -1) || a.id - b.id;
+      });
+      $("grid").innerHTML = list.map(function (p) { return '<div class="col">' + Mumu.productCard(p) + '</div>'; }).join("");
+      $("empty").classList.toggle("d-none", list.length > 0);
+      $("count").textContent = list.length + (list.length === 1 ? " item" : " items");
+
+      var cat = F.cat ? Mumu.category(F.cat, db).name : "";
+      $("pageTitle").textContent = cat || (F.isNew ? "Fresh arrivals ✨" : F.best ? "Most loved 💗" : "All the cute things");
+      $("crumb").textContent = cat || "Shop all";
+      document.title = (cat || "Shop all") + " · Mumu";
+
+      var act = [];
+      if (F.q) act.push(["q", '“' + Mumu.esc(F.q) + '”']);
+      if (pr) act.push(["price", pr[1]]);
+      F.themes.forEach(function (t) { act.push(["theme:" + t, emoji[t] + " " + t]); });
+      if (F.stock) act.push(["stock", "In stock"]);
+      if (F.sale) act.push(["sale", "On sale"]);
+      if (F.isNew) act.push(["isNew", "New"]);
+      if (F.best) act.push(["best", "Most loved"]);
+      $("activeChips").innerHTML = act.map(function (a) { return '<button type="button" class="chip" data-remove="' + a[0] + '">' + a[1] + ' <i class="bi bi-x"></i></button>'; }).join("") +
+        (act.length > 1 ? '<button type="button" class="btn btn-link btn-sm fw-bold p-0 ms-1" onclick="clearAll()">Clear all</button>' : "");
+      var n = act.length - (F.q ? 1 : 0);
+      $("filterCount").textContent = n; $("filterCount").hidden = !n;
+    }
+
+    function clearAll() { F = { q: "", cat: F.cat, price: "", themes: [], stock: false, sale: false, isNew: false, best: false, sort: F.sort }; $("search").value = ""; ["fStock", "fSale", "fNew"].forEach(function (i) { $(i).checked = false; }); chips(); apply(); }
+    $("clearAll").onclick = clearAll;
+
+    document.addEventListener("click", function (e) {
+      var t = e.target.closest("[data-cat],[data-price],[data-theme],[data-remove]"); if (!t) return;
+      if (t.dataset.cat !== undefined) F.cat = t.dataset.cat;
+      else if (t.dataset.price !== undefined) F.price = F.price === t.dataset.price ? "" : t.dataset.price;
+      else if (t.dataset.theme !== undefined) { var i = F.themes.indexOf(t.dataset.theme); if (i > -1) F.themes.splice(i, 1); else F.themes.push(t.dataset.theme); }
+      else {
+        var r = t.dataset.remove;
+        if (r === "q") { F.q = ""; $("search").value = ""; }
+        else if (r.indexOf("theme:") === 0) F.themes.splice(F.themes.indexOf(r.slice(6)), 1);
+        else if (r === "price") F.price = "";
+        else { F[r] = false; var map = { stock: "fStock", sale: "fSale", isNew: "fNew" }; if (map[r]) $(map[r]).checked = false; }
+      }
+      chips(); apply();
+    });
+    var timer; $("search").addEventListener("input", function () { clearTimeout(timer); timer = setTimeout(function () { F.q = $("search").value; apply(); }, 200); });
+    ["sort", "sortM"].forEach(function (id) { $(id).addEventListener("change", function () { F.sort = this.value; $("sort").value = $("sortM").value = F.sort; apply(); }); });
+    $("fStock").onchange = function () { F.stock = this.checked; apply(); };
+    $("fSale").onchange = function () { F.sale = this.checked; apply(); };
+    $("fNew").onchange = function () { F.isNew = this.checked; apply(); };
+
+    chips(); apply();
+  </script>
+</body>
+</html>

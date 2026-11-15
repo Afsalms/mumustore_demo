@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Orders · Mumu admin</title>
+  <link rel="icon" href="../assets/img/favicon.png">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@500;700;800&display=swap">
+  <link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+  <link rel="stylesheet" href="../assets/vendor/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="../assets/css/mumu.css">
+</head>
+<body class="admin-body">
+  <div class="admin-shell">
+    <div id="side"></div>
+    <div>
+      <div id="top"></div>
+      <main class="admin-main">
+        <div class="chip-row mb-3" id="statusChips" role="group" aria-label="Status"></div>
+
+        <div class="card-cute mb-3"><div class="card-body py-3">
+          <div class="row g-2 align-items-end">
+            <div class="col-12 col-lg-4"><div class="search-pill"><i class="bi bi-search"></i><input id="q" type="search" class="form-control" placeholder="Order ID, name or phone" aria-label="Search orders"></div></div>
+            <div class="col-6 col-lg-2"><label class="form-label small" for="pay">Payment</label><select id="pay" class="form-select"><option value="">Any</option><option value="unpaid">Unpaid</option><option value="paid">Paid</option></select></div>
+            <div class="col-6 col-lg-2"><label class="form-label small" for="sort">Sort</label><select id="sort" class="form-select"><option value="new">Newest first</option><option value="old">Oldest first</option><option value="high">Highest total</option></select></div>
+            <div class="col-6 col-lg-2"><label class="form-label small" for="from">From</label><input id="from" type="date" class="form-control"></div>
+            <div class="col-6 col-lg-2"><label class="form-label small" for="to">To</label><input id="to" type="date" class="form-control"></div>
+          </div>
+        </div></div>
+
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="small fw-bold text-ink-soft" id="count" aria-live="polite"></span>
+          <button class="btn btn-link btn-sm fw-bold p-0" id="clear" type="button">Clear filters</button>
+        </div>
+        <div id="list"></div>
+      </main>
+    </div>
+  </div>
+
+  <script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+  <script src="../assets/js/art.js"></script>
+  <script src="../assets/js/data.js"></script>
+  <script src="../assets/js/store.js" data-base="../"></script>
+  <script src="../assets/js/admin.js"></script>
+  <script>
+    var db = Mumu.adminShell("orders", "Orders"), $ = function (id) { return document.getElementById(id); };
+    var F = { status: Mumu.param("status") || "", pay: Mumu.param("pay") || "", q: Mumu.param("q") || "", sort: "new", from: "", to: "" };
+    $("pay").value = F.pay; $("q").value = F.q;
+
+    function chips() {
+      var all = [["", "All", db.orders.length]].concat(Object.keys(Mumu.STATUS).map(function (s) { return [s, Mumu.STATUS[s].label, db.orders.filter(function (o) { return o.status === s; }).length]; }));
+      $("statusChips").innerHTML = all.map(function (c) { return '<button type="button" class="chip' + (F.status === c[0] ? " active" : "") + '" data-s="' + c[0] + '" aria-pressed="' + (F.status === c[0]) + '">' + c[1] + ' <span class="opacity-75">' + c[2] + '</span></button>'; }).join("");
+    }
+    function render() {
+      var q = F.q.trim().toLowerCase(), qd = q.replace(/\D/g, "");
+      var from = F.from ? new Date(F.from + "T00:00").getTime() : 0, to = F.to ? new Date(F.to + "T23:59:59").getTime() : Infinity;
+      var rows = db.orders.filter(function (o) {
+        if (F.status && o.status !== F.status) return false;
+        if (F.pay && o.payment !== F.pay) return false;
+        if (o.at < from || o.at > to) return false;
+        if (q && o.id.toLowerCase().indexOf(q) === -1 && o.customer.name.toLowerCase().indexOf(q) === -1 && !(qd.length > 2 && o.customer.phone.indexOf(qd) > -1)) return false;
+        return true;
+      }).sort(function (a, b) { return F.sort === "old" ? a.at - b.at : F.sort === "high" ? b.total - a.total : b.at - a.at; });
+      $("count").textContent = rows.length + " of " + db.orders.length + " orders";
+      $("clear").hidden = !(F.status || F.pay || F.q || F.from || F.to);
+      Mumu.responsiveList($("list"), {
+        rows: rows, empty: "No orders match these filters.",
+        href: function (o) { return "order.html?id=" + o.id; },
+        cols: [
+          { label: "Order", cell: function (o) { return '<b>' + o.id + '</b><div class="small text-ink-soft">' + Mumu.date(o.at, true) + '</div>'; } },
+          { label: "Customer", cell: function (o) { return Mumu.esc(o.customer.name) + (o.customer.guest ? ' <span class="pill pill-cancelled">Guest</span>' : "") + '<div class="small text-ink-soft">' + o.customer.phone + ' · ' + Mumu.esc(o.address.city) + '</div>'; } },
+          { label: "Items", cell: function (o) { return o.items.reduce(function (s, i) { return s + i.qty; }, 0); } },
+          { label: "Status", cell: function (o) { return Mumu.statusPill(o.status); } },
+          { label: "Payment", cell: function (o) { return Mumu.payPill(o.payment); } },
+          { label: "Total", cls: "text-end", cell: function (o) { return '<b>' + Mumu.money(o.total) + '</b>'; } },
+          { label: "", cls: "text-end", cell: function (o) { return '<a class="btn btn-whatsapp btn-sm" href="' + Mumu.waLink(o.customer.phone, "Hi " + o.customer.name.split(" ")[0] + "! This is Mumu 🐰 about your order " + o.id + ".") + '" aria-label="WhatsApp ' + Mumu.esc(o.customer.name) + '"><i class="bi bi-whatsapp"></i></a>'; } }
+        ],
+        card: function (o) {
+          return '<div class="d-flex justify-content-between align-items-start mb-2"><div><b>' + o.id + '</b><div class="small text-ink-soft fw-bold">' + Mumu.date(o.at, true) + '</div></div><b class="price">' + Mumu.money(o.total) + '</b></div>' +
+            '<div class="kv mb-1"><span>Customer</span><span class="fw-bold">' + Mumu.esc(o.customer.name) + '</span></div>' +
+            '<div class="kv mb-2"><span>Phone · city</span><span class="fw-bold">' + o.customer.phone + ' · ' + Mumu.esc(o.address.city) + '</span></div>' +
+            '<div class="d-flex gap-2 flex-wrap">' + Mumu.statusPill(o.status) + Mumu.payPill(o.payment) + (o.customer.guest ? '<span class="pill pill-cancelled">Guest</span>' : "") + '</div>';
+        }
+      });
+    }
+    $("statusChips").addEventListener("click", function (e) { var b = e.target.closest("[data-s]"); if (!b) return; F.status = b.dataset.s; chips(); render(); });
+    var t; $("q").addEventListener("input", function () { clearTimeout(t); t = setTimeout(function () { F.q = $("q").value; render(); }, 200); });
+    ["pay", "sort", "from", "to"].forEach(function (k) { $(k).addEventListener("change", function () { F[k] = this.value; render(); }); });
+    $("clear").onclick = function () { F = { status: "", pay: "", q: "", sort: F.sort, from: "", to: "" }; ["q", "pay", "from", "to"].forEach(function (k) { $(k).value = ""; }); chips(); render(); };
+    chips(); render();
+  </script>
+</body>
+</html>

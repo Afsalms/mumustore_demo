@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Edit product · Mumu admin</title>
+  <link rel="icon" href="../assets/img/favicon.png">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@500;700;800&display=swap">
+  <link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+  <link rel="stylesheet" href="../assets/vendor/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="../assets/css/mumu.css">
+  <style>.swatch { width: 100%; height: 42px; padding: 4px; border-radius: 14px; }</style>
+</head>
+<body class="admin-body">
+  <div class="admin-shell">
+    <div id="side"></div>
+    <div>
+      <div id="top"></div>
+      <main class="admin-main" id="page"></main>
+    </div>
+  </div>
+
+  <script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+  <script src="../assets/js/art.js"></script>
+  <script src="../assets/js/data.js"></script>
+  <script src="../assets/js/store.js" data-base="../"></script>
+  <script src="../assets/js/admin.js"></script>
+  <script>
+    var pid = Mumu.param("id"), isNew = !pid || pid === "new";
+    var db = Mumu.adminShell("products", isNew ? "Add product" : "Edit product");
+    var page = document.getElementById("page"), $ = function (x) { return document.getElementById(x); };
+    var p = isNew ? { id: 0, sku: "", name: "", cat: "pens", theme: "Bunny", price: "", mrp: "", stock: 0, low: 5, active: true, tags: ["new"], desc: "", art: { type: "pen", c1: "#f7a8c8", c2: "#fde59a", bg: "#fdeef3" } } : Mumu.product(pid, db);
+
+    if (!p) page.innerHTML = '<div class="card-cute"><div class="empty"><h2 class="h5">Product not found</h2><a class="btn btn-pink" href="products.html">Back to products</a></div></div>';
+    else {
+      var sold = db.orders.filter(function (o) { return o.status !== "cancelled"; }).reduce(function (s, o) { return s + o.items.filter(function (i) { return i.id === p.id; }).reduce(function (a, i) { return a + i.qty; }, 0); }, 0);
+      var opt = function (list, cur) { return list.map(function (x) { var v = x.id || x, l = x.name || x; return '<option value="' + v + '"' + (v === cur ? " selected" : "") + '>' + l + '</option>'; }).join(""); };
+      page.innerHTML =
+        '<a href="products.html" class="small fw-bold text-decoration-none d-inline-block mb-2"><i class="bi bi-arrow-left"></i> All products</a>' +
+        '<form id="form" novalidate><div class="row g-3">' +
+        '<div class="col-12 col-lg-4 order-lg-2">' +
+          '<div class="card-cute mb-3"><div class="card-body"><div class="pd-art mb-3" id="preview"></div>' +
+            '<div class="row g-2"><div class="col-12"><label class="form-label small" for="artType">Picture</label><select id="artType" class="form-select">' + opt(MumuArt.types, p.art.type) + '</select></div>' +
+            '<div class="col-4"><label class="form-label small" for="c1">Main</label><input type="color" class="form-control swatch" id="c1" value="' + p.art.c1 + '"></div>' +
+            '<div class="col-4"><label class="form-label small" for="c2">Accent</label><input type="color" class="form-control swatch" id="c2" value="' + p.art.c2 + '"></div>' +
+            '<div class="col-4"><label class="form-label small" for="bg">Backdrop</label><input type="color" class="form-control swatch" id="bg" value="' + (p.art.bg || "#fdeef3") + '"></div></div>' +
+            '<p class="small text-ink-soft mt-2 mb-0">Demo art. In the real build this is a photo upload.</p></div></div>' +
+          (isNew ? "" : '<div class="card-cute"><div class="card-body"><div class="d-flex justify-content-between small fw-bold"><span class="text-ink-soft">SKU</span><span>' + p.sku + '</span></div><div class="d-flex justify-content-between small fw-bold mt-1"><span class="text-ink-soft">Sold (all time)</span><span>' + sold + '</span></div><a class="btn btn-soft btn-sm w-100 mt-3" href="../product.html?id=' + p.id + '"><i class="bi bi-box-arrow-up-right"></i> View in shop</a></div></div>') +
+        '</div>' +
+        '<div class="col-12 col-lg-8 order-lg-1">' +
+          '<div class="card-cute mb-3"><div class="card-body"><h2 class="h6 mb-3">Details</h2><div class="row g-3">' +
+            '<div class="col-12"><label class="form-label" for="name">Name</label><input class="form-control" id="name" value="' + Mumu.esc(p.name) + '" required maxlength="80"><div class="invalid-feedback">Give the product a name.</div></div>' +
+            '<div class="col-6"><label class="form-label" for="cat">Category</label><select class="form-select" id="cat">' + opt(db.categories, p.cat) + '</select></div>' +
+            '<div class="col-6"><label class="form-label" for="theme">Theme</label><select class="form-select" id="theme">' + opt(db.themes, p.theme) + '</select></div>' +
+            '<div class="col-12"><label class="form-label" for="desc">Description</label><textarea class="form-control" id="desc" rows="3" maxlength="400">' + Mumu.esc(p.desc) + '</textarea></div>' +
+            '<div class="col-12 d-flex flex-wrap gap-3"><div class="form-check"><input class="form-check-input" type="checkbox" id="tNew"' + (p.tags.indexOf("new") > -1 ? " checked" : "") + '><label class="form-check-label small fw-bold" for="tNew">Mark as New</label></div>' +
+              '<div class="form-check"><input class="form-check-input" type="checkbox" id="tBest"' + (p.tags.indexOf("bestseller") > -1 ? " checked" : "") + '><label class="form-check-label small fw-bold" for="tBest">Most loved</label></div>' +
+              '<div class="form-check form-switch ms-sm-auto"><input class="form-check-input" type="checkbox" role="switch" id="active"' + (p.active ? " checked" : "") + '><label class="form-check-label small fw-bold" for="active">Visible in shop</label></div></div>' +
+          '</div></div></div>' +
+          '<div class="card-cute mb-3"><div class="card-body"><h2 class="h6 mb-3">Price</h2><div class="row g-3">' +
+            '<div class="col-6"><label class="form-label" for="price">Selling price (₹)</label><input class="form-control" id="price" type="number" min="1" step="1" inputmode="numeric" value="' + p.price + '" required><div class="invalid-feedback">Enter a price.</div></div>' +
+            '<div class="col-6"><label class="form-label" for="mrp">MRP (₹) <span class="fw-normal text-ink-soft">optional</span></label><input class="form-control" id="mrp" type="number" min="0" step="1" inputmode="numeric" value="' + (p.mrp || "") + '"><div class="form-text">Shown struck through when higher than the price.</div></div>' +
+          '</div></div></div>' +
+          '<div class="card-cute mb-3"><div class="card-body"><div class="d-flex justify-content-between align-items-center mb-3"><h2 class="h6 mb-0">Stock</h2><span id="stockPill"></span></div><div class="row g-3">' +
+            '<div class="col-6 col-md-4"><label class="form-label" for="stock">In stock now</label><input class="form-control" id="stock" type="number" min="0" step="1" inputmode="numeric" value="' + p.stock + '" required></div>' +
+            '<div class="col-6 col-md-4"><label class="form-label" for="low">Alert when at or below</label><input class="form-control" id="low" type="number" min="0" step="1" inputmode="numeric" value="' + p.low + '" required></div>' +
+            '<div class="col-12 col-md-4"><label class="form-label" for="addQty">Received a delivery?</label><div class="input-group"><input class="form-control" id="addQty" type="number" min="1" inputmode="numeric" placeholder="Qty" style="border-radius:14px 0 0 14px"><button class="btn btn-soft" type="button" id="addBtn" style="border-radius:0 14px 14px 0">+ Add</button></div></div>' +
+            '<div class="col-12 small text-ink-soft">Stock goes down automatically when a customer places an order, and back up when an order is cancelled.</div>' +
+          '</div></div></div>' +
+          '<div class="d-flex gap-2"><button class="btn btn-pink" type="submit">' + (isNew ? "Add product" : "Save product") + '</button><a class="btn btn-soft" href="products.html">Cancel</a></div>' +
+        '</div></div></form>';
+
+      function preview() {
+        var tmp = { name: $("name").value, art: { type: $("artType").value, c1: $("c1").value, c2: $("c2").value, bg: $("bg").value } };
+        $("preview").innerHTML = MumuArt.svg(tmp);
+        $("stockPill").innerHTML = Mumu.stockPill({ stock: +$("stock").value || 0, low: +$("low").value || 0 });
+      }
+      ["artType", "c1", "c2", "bg", "stock", "low"].forEach(function (k) { $(k).addEventListener("input", preview); });
+      $("addBtn").onclick = function () { var n = parseInt($("addQty").value, 10); if (n > 0) { $("stock").value = (+$("stock").value || 0) + n; $("addQty").value = ""; preview(); Mumu.toast("+" + n + " added — remember to save"); } };
+      preview();
+
+      $("form").addEventListener("submit", function (e) {
+        e.preventDefault(); this.classList.add("was-validated"); if (!this.checkValidity()) return;
+        var d = Mumu.db(), t = isNew ? { id: d.products.reduce(function (m, x) { return Math.max(m, x.id); }, 0) + 1, created: Date.now() } : Mumu.product(p.id, d);
+        t.sku = t.sku || "MU-" + String(t.id).padStart(4, "0");
+        t.name = $("name").value.trim(); t.cat = $("cat").value; t.theme = $("theme").value; t.desc = $("desc").value.trim();
+        t.price = +$("price").value; t.mrp = +$("mrp").value || 0; t.stock = Math.max(0, parseInt($("stock").value, 10) || 0); t.low = Math.max(0, parseInt($("low").value, 10) || 0);
+        t.active = $("active").checked; t.tags = []; if ($("tNew").checked) t.tags.push("new"); if ($("tBest").checked) t.tags.push("bestseller");
+        t.art = { type: $("artType").value, c1: $("c1").value, c2: $("c2").value, bg: $("bg").value };
+        if (isNew) d.products.push(t);
+        Mumu.save(d); Mumu.flash((isNew ? "Added " : "Saved ") + t.name + " ✓"); location.href = "products.html";
+      });
+    }
+  </script>
+</body>
+</html>

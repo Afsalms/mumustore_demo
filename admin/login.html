@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin sign in · Mumu</title>
+  <link rel="icon" href="../assets/img/favicon.png">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@500;700;800&display=swap">
+  <link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+  <link rel="stylesheet" href="../assets/vendor/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="../assets/css/mumu.css">
+</head>
+<body class="admin-body" style="padding-bottom:0">
+  <main class="login-wrap">
+    <div class="card-cute w-100" style="max-width:420px">
+      <div class="card-body p-4">
+        <div class="text-center mb-3">
+          <img src="../assets/img/logo.png" width="96" height="96" alt="" class="float">
+          <h1 class="h4 mt-2 mb-0">Mumu store admin</h1>
+          <p class="small fw-bold text-ink-soft">Sign in to manage orders and stock.</p>
+        </div>
+        <form id="form" novalidate>
+          <div class="mb-3"><label class="form-label" for="email">Email</label><input class="form-control" id="email" type="email" autocomplete="username" required></div>
+          <div class="mb-2"><label class="form-label" for="pw">Password</label>
+            <div class="input-group"><input class="form-control" id="pw" type="password" autocomplete="current-password" required style="border-right:0;border-radius:14px 0 0 14px"><button class="btn btn-soft" type="button" id="show" style="border-radius:0 14px 14px 0" aria-label="Show password"><i class="bi bi-eye"></i></button></div>
+          </div>
+          <div id="err" class="text-danger small fw-bold mb-2" role="alert"></div>
+          <button class="btn btn-pink w-100 mt-2" type="submit">Sign in</button>
+        </form>
+        <div class="demo-note mt-3"><b>Demo login:</b> admin@mumu.in · mumu123 <button type="button" class="btn btn-link btn-sm p-0 fw-bold ms-1" id="fill">Fill in</button></div>
+        <div class="text-center mt-3"><a href="../index.html" class="small fw-bold text-decoration-none"><i class="bi bi-arrow-left"></i> Back to shop</a></div>
+      </div>
+    </div>
+  </main>
+  <script src="../assets/js/art.js"></script>
+  <script src="../assets/js/data.js"></script>
+  <script src="../assets/js/store.js" data-base="../"></script>
+  <script src="../assets/js/admin.js"></script>
+  <script>
+    if (Mumu.admin()) location.replace("index.html");
+    var $ = function (id) { return document.getElementById(id); };
+    $("fill").onclick = function () { $("email").value = Mumu.ADMIN.email; $("pw").value = Mumu.ADMIN.password; };
+    $("show").onclick = function () { var t = $("pw").type === "password"; $("pw").type = t ? "text" : "password"; this.innerHTML = '<i class="bi bi-eye' + (t ? "-slash" : "") + '"></i>'; };
+    $("form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      if ($("email").value.trim().toLowerCase() === Mumu.ADMIN.email && $("pw").value === Mumu.ADMIN.password) {
+        Mumu.ls.set("mumu_admin", JSON.stringify({ email: Mumu.ADMIN.email, at: Date.now() }));
+        location.href = "index.html";
+      } else { $("err").textContent = "That email and password don’t match."; $("pw").select(); }
+    });
+  </script>
+</body>
+</html>

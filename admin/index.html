@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard · Mumu admin</title>
+  <link rel="icon" href="../assets/img/favicon.png">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@500;700;800&display=swap">
+  <link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+  <link rel="stylesheet" href="../assets/vendor/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="../assets/css/mumu.css">
+</head>
+<body class="admin-body">
+  <div class="admin-shell">
+    <div id="side"></div>
+    <div>
+      <div id="top"></div>
+      <main class="admin-main">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+          <div><div class="small-caps" id="hello"></div><div class="fw-bold text-ink-soft small" id="today"></div></div>
+          <div class="chip-row" role="group" aria-label="Period" id="period">
+            <button class="chip" data-days="1">Today</button><button class="chip active" data-days="7">7 days</button><button class="chip" data-days="30">30 days</button>
+          </div>
+        </div>
+
+        <div class="row g-2 g-md-3 mb-3" id="kpis"></div>
+        <div class="alert-low p-3 mb-3 d-xl-none" id="lowBoxM"></div>
+
+        <div class="row g-3">
+          <div class="col-12 col-xl-8">
+            <div class="card-cute mb-3"><div class="card-body">
+              <div class="d-flex justify-content-between align-items-baseline mb-1"><h2 class="h6 mb-0">Sales, last 7 days</h2><span class="small fw-bold text-ink-soft" id="weekTotal"></span></div>
+              <div class="small text-ink-soft mb-2">Order value by day the order was placed, cancelled orders left out.</div>
+              <div class="bars" id="bars"></div><div class="bars-x" id="barsX"></div>
+              <details class="mt-2 small"><summary class="fw-bold text-ink-soft">Show as table</summary><table class="table table-sm table-cute mt-2" id="barsTable"></table></details>
+            </div></div>
+            <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h6 mb-0">Latest orders</h2><a href="orders.html" class="small fw-bold text-decoration-none">All orders <i class="bi bi-arrow-right"></i></a></div>
+            <div id="recent"></div>
+          </div>
+          <div class="col-12 col-xl-4">
+            <div class="alert-low p-3 mb-3 d-none d-xl-block" id="lowBox"></div>
+            <div class="card-cute mb-3"><div class="card-body"><h2 class="h6">Orders by status</h2><div id="byStatus" class="d-grid gap-2"></div></div></div>
+            <div class="card-cute mb-3"><div class="card-body"><h2 class="h6">Sales by category <span class="text-ink-soft fw-normal small" id="catPeriod"></span></h2><div id="byCat"></div></div></div>
+            <div class="card-cute"><div class="card-body"><h2 class="h6">Best sellers <span class="text-ink-soft fw-normal small" id="topPeriod"></span></h2><div id="top5"></div></div></div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+  <script src="../assets/js/art.js"></script>
+  <script src="../assets/js/data.js"></script>
+  <script src="../assets/js/store.js" data-base="../"></script>
+  <script src="../assets/js/admin.js"></script>
+  <script>
+    var db = Mumu.adminShell("dash", "Dashboard"), days = 7, $ = function (id) { return document.getElementById(id); };
+    var h = new Date().getHours();
+    $("hello").textContent = (h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening") + " 🌸";
+    $("today").textContent = new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
+
+    function startOf(daysBack) { var d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - daysBack + 1); return d.getTime(); }
+    function live(o) { return o.status !== "cancelled"; }
+
+    function render() {
+      var from = startOf(days), inP = db.orders.filter(function (o) { return o.at >= from; }), ok = inP.filter(live);
+      var sales = ok.reduce(function (s, o) { return s + o.total; }, 0);
+      var items = ok.reduce(function (s, o) { return s + o.items.reduce(function (a, i) { return a + i.qty; }, 0); }, 0);
+      var newOnes = db.orders.filter(function (o) { return o.status === "new"; });
+      var unpaid = db.orders.filter(function (o) { return live(o) && o.payment === "unpaid"; });
+      var unpaidAmt = unpaid.reduce(function (s, o) { return s + o.total; }, 0);
+      var label = days === 1 ? "today" : "last " + days + " days";
+      function kpi(icon, lbl, val, sub, href) { return '<div class="col-6 col-md-4 col-xl-2"><' + (href ? 'a href="' + href + '"' : "div") + ' class="kpi"><div class="lbl"><i class="bi ' + icon + '"></i>' + lbl + '</div><div class="val">' + val + '</div><div class="sub">' + sub + '</div></' + (href ? "a" : "div") + '></div>'; }
+      $("kpis").innerHTML =
+        kpi("bi-currency-rupee", "Sales", Mumu.money(sales), label) +
+        kpi("bi-receipt", "Orders", ok.length, label + (inP.length - ok.length ? " · " + (inP.length - ok.length) + " cancelled" : "")) +
+        kpi("bi-basket", "Avg order", Mumu.money(ok.length ? Math.round(sales / ok.length) : 0), items + " items sold") +
+        kpi("bi-whatsapp", "To contact", newOnes.length, "new, waiting for WhatsApp", "orders.html?status=new") +
+        kpi("bi-hourglass-split", "Unpaid", Mumu.money(unpaidAmt), unpaid.length + " open orders", "orders.html?pay=unpaid") +
+        kpi("bi-exclamation-triangle", "Stock alerts", Mumu.alertCount(db), "low or out of stock", "stock.html");
+
+      $("catPeriod").textContent = $("topPeriod").textContent = "· " + label;
+      // by category
+      var cat = {}; ok.forEach(function (o) { o.items.forEach(function (i) { var p = Mumu.product(i.id, db); var c = p ? p.cat : "other"; cat[c] = (cat[c] || 0) + i.price * i.qty; }); });
+      var cats = Object.keys(cat).sort(function (a, b) { return cat[b] - cat[a]; }), maxC = cat[cats[0]] || 1;
+      $("byCat").innerHTML = cats.length ? cats.map(function (c) { return '<div class="hbar"><div class="top"><span>' + Mumu.category(c, db).name + '</span><span>' + Mumu.money(cat[c]) + '</span></div><div class="track"><span style="width:' + (cat[c] / maxC * 100) + '%"></span></div></div>'; }).join("") : '<p class="small text-ink-soft mb-0">No sales in this period.</p>';
+      // top products
+      var qty = {}; ok.forEach(function (o) { o.items.forEach(function (i) { qty[i.id] = (qty[i.id] || 0) + i.qty; }); });
+      var top = Object.keys(qty).sort(function (a, b) { return qty[b] - qty[a]; }).slice(0, 5);
+      $("top5").innerHTML = top.length ? top.map(function (id, n) { var p = Mumu.product(id, db); return '<a href="product.html?id=' + id + '" class="d-flex align-items-center gap-2 text-decoration-none py-1" style="color:inherit"><span class="small fw-bold text-ink-soft" style="width:14px">' + (n + 1) + '</span><span class="thumb-sm">' + MumuArt.svg(p) + '</span><span class="small fw-bold flex-grow-1">' + Mumu.esc(p.name) + '</span><span class="small fw-bold">' + qty[id] + ' sold</span></a>'; }).join("") : '<p class="small text-ink-soft mb-0">No sales in this period.</p>';
+    }
+
+    // 7-day bars (independent of period chips)
+    (function () {
+      var rows = [];
+      for (var i = 6; i >= 0; i--) {
+        var s = startOf(i + 1), e = s + 86400000;
+        var v = db.orders.filter(function (o) { return live(o) && o.at >= s && o.at < e; });
+        rows.push({ d: new Date(s), v: v.reduce(function (a, o) { return a + o.total; }, 0), n: v.length });
+      }
+      var max = Math.max.apply(null, rows.map(function (r) { return r.v; })) || 1;
+      $("weekTotal").textContent = Mumu.money(rows.reduce(function (a, r) { return a + r.v; }, 0)) + " total";
+      $("bars").innerHTML = rows.map(function (r) { return '<div class="b" tabindex="0" aria-label="' + r.d.toDateString() + ': ' + Mumu.money(r.v) + '"><span class="tip">' + Mumu.money(r.v) + ' · ' + r.n + ' orders</span><div class="fill" style="height:' + (r.v / max * 100) + '%"></div></div>'; }).join("");
+      $("barsX").innerHTML = rows.map(function (r, i) { return '<span>' + (i === 6 ? "Today" : r.d.toLocaleDateString("en-IN", { weekday: "short" })) + '</span>'; }).join("");
+      $("barsTable").innerHTML = '<thead><tr><th>Day</th><th class="text-end">Orders</th><th class="text-end">Sales</th></tr></thead><tbody>' + rows.map(function (r) { return '<tr><td>' + r.d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }) + '</td><td class="text-end">' + r.n + '</td><td class="text-end">' + Mumu.money(r.v) + '</td></tr>'; }).join("") + '</tbody>';
+    })();
+
+    // stock alerts
+    (function () {
+      var al = db.products.filter(function (p) { return p.active && p.stock <= p.low; }).sort(function (a, b) { return a.stock - b.stock; });
+      var out = al.filter(function (p) { return p.stock <= 0; }).length;
+      $("lowBox").innerHTML = '<div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h6 mb-0 head"><i class="bi bi-exclamation-triangle-fill"></i> Low stock alerts</h2><a href="stock.html" class="small fw-bold text-decoration-none">Restock <i class="bi bi-arrow-right"></i></a></div>' +
+        (al.length ? '<div class="small fw-bold mb-2" style="color:#a35400">' + out + ' out of stock · ' + (al.length - out) + ' running low</div>' +
+          al.slice(0, 6).map(function (p) { return '<a href="product.html?id=' + p.id + '" class="d-flex align-items-center gap-2 py-1 text-decoration-none" style="color:inherit"><span class="thumb-sm">' + MumuArt.svg(p) + '</span><span class="small fw-bold flex-grow-1 text-truncate">' + Mumu.esc(p.name) + '</span>' + Mumu.stockPill(p) + '</a>'; }).join("") + (al.length > 6 ? '<div class="small fw-bold mt-1"><a href="stock.html">+' + (al.length - 6) + ' more</a></div>' : "")
+          : '<p class="small mb-0 fw-bold">All stocked up 🎉</p>');
+      $("lowBoxM").innerHTML = $("lowBox").innerHTML;
+    })();
+
+    // status breakdown
+    $("byStatus").innerHTML = Object.keys(Mumu.STATUS).map(function (s) {
+      var n = db.orders.filter(function (o) { return o.status === s; }).length;
+      return '<a href="orders.html?status=' + s + '" class="d-flex justify-content-between align-items-center text-decoration-none" style="color:inherit">' + Mumu.statusPill(s) + '<b>' + n + '</b></a>';
+    }).join("");
+
+    Mumu.responsiveList($("recent"), {
+      rows: db.orders.slice().sort(function (a, b) { return b.at - a.at; }).slice(0, 6),
+      href: function (o) { return "order.html?id=" + o.id; },
+      cols: [
+        { label: "Order", cell: function (o) { return '<b>' + o.id + '</b><div class="small text-ink-soft">' + Mumu.ago(o.at) + '</div>'; } },
+        { label: "Customer", cell: function (o) { return Mumu.esc(o.customer.name) + '<div class="small text-ink-soft">' + o.customer.phone + '</div>'; } },
+        { label: "Status", cell: function (o) { return Mumu.statusPill(o.status); } },
+        { label: "Payment", cell: function (o) { return Mumu.payPill(o.payment); } },
+        { label: "Total", cls: "text-end", cell: function (o) { return '<b>' + Mumu.money(o.total) + '</b>'; } }
+      ],
+      card: function (o) { return '<div class="d-flex justify-content-between align-items-start mb-1"><div><b>' + o.id + '</b><div class="small text-ink-soft fw-bold">' + Mumu.esc(o.customer.name) + ' · ' + Mumu.ago(o.at) + '</div></div><b class="price">' + Mumu.money(o.total) + '</b></div><div class="d-flex gap-2">' + Mumu.statusPill(o.status) + Mumu.payPill(o.payment) + '</div>'; }
+    });
+
+    $("period").addEventListener("click", function (e) {
+      var b = e.target.closest("[data-days]"); if (!b) return;
+      days = +b.dataset.days; this.querySelectorAll(".chip").forEach(function (c) { c.classList.toggle("active", c === b); }); render();
+    });
+    render();
+  </script>
+</body>
+</html>

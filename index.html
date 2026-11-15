@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mumu — The Creative Store</title>
+  <link rel="icon" href="assets/img/favicon.png">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@500;700;800&display=swap">
+  <link rel="stylesheet" href="assets/vendor/bootstrap.min.css">
+  <link rel="stylesheet" href="assets/vendor/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="assets/css/mumu.css">
+</head>
+<body>
+  <div id="shellTop"></div>
+
+  <main>
+    <!-- Hero -->
+    <section class="hero pt-0 pt-md-4">
+      <div class="container px-0 px-md-3">
+        <div class="row g-0 g-md-4 align-items-center">
+          <div class="col-12 col-lg-7 position-relative">
+            <img class="hero-banner" src="assets/img/banner.jpg" alt="Mumu stationery shop — cute, cheerful, creative. Pens, notebooks, stickers, washi tapes, accessories and more.">
+          </div>
+          <div class="col-12 col-lg-5 px-3 px-md-2 py-4 py-lg-0 text-center text-lg-start position-relative">
+            <i class="bi bi-star-fill sparkle" style="top:8%;right:12%;font-size:1.2rem"></i>
+            <i class="bi bi-heart-fill sparkle" style="bottom:10%;left:6%;color:#f48cb6;animation-delay:1s"></i>
+            <span class="small-caps">Hello, cutie! 🐰</span>
+            <h1 class="display-6 mt-1 mb-2">Stationery that makes you <span class="text-pink">want to write.</span></h1>
+            <p class="text-ink-soft fw-bold mb-4">Pastel pens, dreamy journals, stickers and washi tapes — hand-picked and packed with love.</p>
+            <div class="d-flex gap-2 justify-content-center justify-content-lg-start flex-wrap">
+              <a href="shop.html" class="btn btn-pink btn-lg px-4"><i class="bi bi-bag-heart me-1"></i> Shop now</a>
+              <a href="shop.html?tag=new" class="btn btn-soft btn-lg px-4">New in ✨</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="mt-md-4">
+        <svg class="drip" viewBox="0 0 1200 38" preserveAspectRatio="none" aria-hidden="true" style="transform:scaleY(-1)"><path d="M0 0 H1200 V14 C1150 30 1120 10 1080 20 C1040 32 1020 38 1000 22 C960 6 920 30 880 24 C840 18 820 6 780 18 C740 30 700 34 660 20 C620 6 590 26 560 24 C520 22 500 8 460 16 C420 26 400 36 360 24 C320 12 300 4 260 18 C220 32 190 30 160 18 C120 4 90 24 60 22 C30 20 15 10 0 14Z" fill="#fff8fa"/></svg>
+      </div>
+    </section>
+
+    <!-- Categories -->
+    <section class="container mt-4">
+      <h2 class="h4 section-title">Shop by category</h2>
+      <div class="cat-scroller" id="cats"></div>
+    </section>
+
+    <!-- Bestsellers -->
+    <section class="container mt-4">
+      <div class="d-flex align-items-end justify-content-between mb-3">
+        <h2 class="h4 section-title mb-0">Most loved 💗</h2>
+        <a href="shop.html?tag=bestseller" class="fw-bold small text-decoration-none">See all <i class="bi bi-arrow-right"></i></a>
+      </div>
+      <div class="row g-3 row-cols-2 row-cols-md-3 row-cols-lg-4" id="best"></div>
+    </section>
+
+    <!-- Gift promo -->
+    <section class="container mt-5">
+      <div class="card-cute overflow-hidden" style="background:linear-gradient(120deg,#fdeef3,#fff 60%)">
+        <div class="row g-0 align-items-center">
+          <div class="col-5 col-md-4" id="giftArt"></div>
+          <div class="col-7 col-md-8 p-3 p-md-4">
+            <span class="small-caps">Gifting made cute</span>
+            <h3 class="h4 mb-1">The Mumu Starter Gift Box</h3>
+            <p class="small text-ink-soft fw-bold mb-3 d-none d-sm-block">Gel pens, washi, a journal and stickers — with a handwritten note from us.</p>
+            <a href="product.html?id=27" class="btn btn-pink btn-sm">Peek inside <i class="bi bi-gift"></i></a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- New arrivals -->
+    <section class="container mt-5">
+      <div class="d-flex align-items-end justify-content-between mb-3">
+        <h2 class="h4 section-title mb-0">Fresh arrivals</h2>
+        <a href="shop.html?tag=new" class="fw-bold small text-decoration-none">See all <i class="bi bi-arrow-right"></i></a>
+      </div>
+      <div class="row g-3 row-cols-2 row-cols-md-3 row-cols-lg-4" id="fresh"></div>
+    </section>
+
+    <!-- Themes -->
+    <section class="container mt-5">
+      <h2 class="h4 section-title">Pick your vibe</h2>
+      <div class="chip-row wrap-lg" id="themes"></div>
+    </section>
+
+    <!-- How it works -->
+    <section class="container mt-5">
+      <h2 class="h4 section-title">How ordering works</h2>
+      <div class="row g-3">
+        <div class="col-12 col-md-4"><div class="card-cute h-100"><div class="card-body d-flex gap-3"><div class="perk"><i class="bi bi-bag-heart"></i></div><div><div class="fw-bold">1. Add your favourites</div><div class="small text-ink-soft">Check out as a guest or sign in with Google.</div></div></div></div></div>
+        <div class="col-12 col-md-4"><div class="card-cute h-100"><div class="card-body d-flex gap-3"><div class="perk"><i class="bi bi-whatsapp"></i></div><div><div class="fw-bold">2. We WhatsApp you</div><div class="small text-ink-soft">We confirm your order and share payment details.</div></div></div></div></div>
+        <div class="col-12 col-md-4"><div class="card-cute h-100"><div class="card-body d-flex gap-3"><div class="perk"><i class="bi bi-truck"></i></div><div><div class="fw-bold">3. Happy mail arrives</div><div class="small text-ink-soft">Packed with love and a surprise sticker 🎀</div></div></div></div></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="shellFoot"></div>
+
+  <script src="assets/vendor/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/art.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script>
+    Mumu.shell("home");
+    var db = Mumu.db();
+    document.getElementById("cats").innerHTML = db.categories.map(function (c) {
+      return '<a class="cat-bubble" href="shop.html?cat=' + c.id + '"><div class="bub">' + MumuArt.svg({ art: { type: c.art, c1: c.c1, c2: c.c2, bg: "#fff" } }, c.name) + '</div><span>' + c.name + '</span></a>';
+    }).join("");
+    var live = db.products.filter(function (p) { return p.active; });
+    function render() {
+      document.getElementById("best").innerHTML = live.filter(function (p) { return p.tags.indexOf("bestseller") > -1; }).slice(0, 8).map(function (p) { return '<div class="col">' + Mumu.productCard(p) + '</div>'; }).join("");
+      document.getElementById("fresh").innerHTML = live.filter(function (p) { return p.tags.indexOf("new") > -1; }).slice(0, 4).map(function (p) { return '<div class="col">' + Mumu.productCard(p) + '</div>'; }).join("");
+    }
+    render();
+    document.getElementById("giftArt").innerHTML = '<div class="float">' + MumuArt.svg(Mumu.product(27, db)) + '</div>';
+    var emoji = { Bunny: "🐰", Strawberry: "🍓", Cloud: "☁️", Bear: "🐻", Sakura: "🌸", Kitten: "🐱" };
+    document.getElementById("themes").innerHTML = db.themes.map(function (t) { return '<a class="chip" href="shop.html?theme=' + t + '">' + (emoji[t] || "") + ' ' + t + '</a>'; }).join("");
+  </script>
+</body>
+</html>

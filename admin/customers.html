@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Customers · Mumu admin</title>
+  <link rel="icon" href="../assets/img/favicon.png">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@500;700;800&display=swap">
+  <link rel="stylesheet" href="../assets/vendor/bootstrap.min.css">
+  <link rel="stylesheet" href="../assets/vendor/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="../assets/css/mumu.css">
+</head>
+<body class="admin-body">
+  <div class="admin-shell">
+    <div id="side"></div>
+    <div>
+      <div id="top"></div>
+      <main class="admin-main">
+        <div class="card-cute mb-3"><div class="card-body py-3"><div class="row g-2 align-items-end">
+          <div class="col-12 col-md-6"><div class="search-pill"><i class="bi bi-search"></i><input id="q" type="search" class="form-control" placeholder="Name, phone or city" aria-label="Search customers"></div></div>
+          <div class="col-6 col-md-3"><label class="form-label small" for="type">Type</label><select id="type" class="form-select"><option value="">All</option><option value="account">Google account</option><option value="guest">Guest</option></select></div>
+          <div class="col-6 col-md-3"><label class="form-label small" for="sort">Sort</label><select id="sort" class="form-select"><option value="recent">Last order</option><option value="spent">Total spent</option><option value="orders">Most orders</option></select></div>
+        </div></div></div>
+        <div class="small fw-bold text-ink-soft mb-2" id="count" aria-live="polite"></div>
+        <div id="list"></div>
+      </main>
+    </div>
+  </div>
+
+  <script src="../assets/vendor/bootstrap.bundle.min.js"></script>
+  <script src="../assets/js/art.js"></script>
+  <script src="../assets/js/data.js"></script>
+  <script src="../assets/js/store.js" data-base="../"></script>
+  <script src="../assets/js/admin.js"></script>
+  <script>
+    var db = Mumu.adminShell("customers", "Customers"), $ = function (id) { return document.getElementById(id); };
+    // Customers are grouped by WhatsApp number (the key the shop works with).
+    var map = {};
+    db.orders.forEach(function (o) {
+      var c = map[o.customer.phone] || (map[o.customer.phone] = { name: o.customer.name, phone: o.customer.phone, email: o.customer.email, city: o.address.city, guest: true, orders: 0, spent: 0, last: 0, lastId: "" });
+      if (!o.customer.guest) c.guest = false;
+      c.orders++; if (o.status !== "cancelled") c.spent += o.total;
+      if (o.at > c.last) { c.last = o.at; c.lastId = o.id; c.name = o.customer.name; c.city = o.address.city; }
+    });
+    var all = Object.keys(map).map(function (k) { return map[k]; });
+    function render() {
+      var q = $("q").value.trim().toLowerCase(), type = $("type").value, s = $("sort").value;
+      var rows = all.filter(function (c) {
+        if (type === "guest" && !c.guest) return false; if (type === "account" && c.guest) return false;
+        return !q || (c.name + " " + c.phone + " " + c.city).toLowerCase().indexOf(q) > -1;
+      }).sort(function (a, b) { return s === "spent" ? b.spent - a.spent : s === "orders" ? b.orders - a.orders : b.last - a.last; });
+      $("count").textContent = rows.length + " customers";
+      Mumu.responsiveList($("list"), {
+        rows: rows, empty: "No customers match.",
+        href: function (c) { return "orders.html?q=" + c.phone; },
+        cols: [
+          { label: "Customer", cell: function (c) { return '<b>' + Mumu.esc(c.name) + '</b> ' + (c.guest ? '<span class="pill pill-cancelled">Guest</span>' : '<span class="pill pill-contacted">Google</span>') + '<div class="small text-ink-soft">' + c.phone + (c.email ? " · " + Mumu.esc(c.email) : "") + '</div>'; } },
+          { label: "City", cell: function (c) { return Mumu.esc(c.city); } },
+          { label: "Orders", cls: "text-end", cell: function (c) { return c.orders; } },
+          { label: "Spent", cls: "text-end", cell: function (c) { return '<b>' + Mumu.money(c.spent) + '</b>'; } },
+          { label: "Last order", cell: function (c) { return '<a href="order.html?id=' + c.lastId + '">' + c.lastId + '</a><div class="small text-ink-soft">' + Mumu.ago(c.last) + '</div>'; } },
+          { label: "", cls: "text-end", cell: function (c) { return '<a class="btn btn-whatsapp btn-sm" href="' + Mumu.waLink(c.phone, "Hi " + c.name.split(" ")[0] + "! 🐰 ") + '" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>'; } }
+        ],
+        card: function (c) {
+          return '<div class="d-flex justify-content-between align-items-start mb-1"><div><b>' + Mumu.esc(c.name) + '</b><div class="small text-ink-soft fw-bold">' + c.phone + ' · ' + Mumu.esc(c.city) + '</div></div>' + (c.guest ? '<span class="pill pill-cancelled">Guest</span>' : '<span class="pill pill-contacted">Google</span>') + '</div>' +
+            '<div class="kv"><span>Orders</span><span class="fw-bold">' + c.orders + '</span></div><div class="kv"><span>Total spent</span><span class="fw-bold">' + Mumu.money(c.spent) + '</span></div><div class="kv"><span>Last order</span><span class="fw-bold">' + c.lastId + ' · ' + Mumu.ago(c.last) + '</span></div>';
+        }
+      });
+    }
+    ["q", "type", "sort"].forEach(function (k) { $(k).addEventListener(k === "q" ? "input" : "change", render); });
+    render();
+  </script>
+</body>
+</html>

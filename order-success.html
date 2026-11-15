@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Order placed · Mumu</title>
+  <link rel="icon" href="assets/img/favicon.png">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@500;700;800&display=swap">
+  <link rel="stylesheet" href="assets/vendor/bootstrap.min.css">
+  <link rel="stylesheet" href="assets/vendor/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="assets/css/mumu.css">
+</head>
+<body>
+  <div id="shellTop"></div>
+
+  <main class="container py-4 py-md-5" style="max-width:640px" id="page"></main>
+
+  <div id="shellFoot"></div>
+
+  <script src="assets/vendor/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/art.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script>
+    Mumu.shell("");
+    var id = Mumu.param("id"), o = Mumu.db().orders.filter(function (x) { return x.id === id; })[0], page = document.getElementById("page");
+    if (!o) {
+      page.innerHTML = '<div class="card-cute"><div class="empty"><h1 class="h5">We couldn’t find that order</h1><a class="btn btn-pink mt-2" href="account.html#track">Track an order</a></div></div>';
+    } else {
+      var phone = o.customer.phone.replace(/(\d{5})(\d{5})/, "$1 $2");
+      page.innerHTML =
+        '<div class="card-cute text-center position-relative overflow-hidden"><div class="card-body p-4 p-md-5">' +
+          '<i class="bi bi-star-fill sparkle" style="top:14px;left:20px"></i><i class="bi bi-heart-fill sparkle" style="top:40px;right:28px;color:#f48cb6;animation-delay:.8s"></i><i class="bi bi-star-fill sparkle" style="bottom:30px;left:40px;animation-delay:1.4s"></i>' +
+          '<img src="assets/img/logo.png" width="110" height="110" alt="" class="float mb-2">' +
+          '<h1 class="h3 mb-2">Yay! Order placed 🎉</h1>' +
+          '<p class="fw-bold text-ink-soft mb-3">Thank you, ' + Mumu.esc(o.customer.name.split(" ")[0]) + '! <b class="text-pink">We will contact you soon</b> on WhatsApp at <b>+91 ' + phone + '</b> to confirm your order and share payment details.</p>' +
+          '<div class="small-caps mb-1">Your order ID</div>' +
+          '<div class="order-id mb-2" id="oid">' + o.id + '</div>' +
+          '<div><button type="button" class="btn btn-link btn-sm fw-bold" id="copy"><i class="bi bi-copy"></i> Copy order ID</button></div>' +
+          '<p class="small text-ink-soft fw-bold mt-2 mb-0">Keep this ID handy — you can quote it on WhatsApp or track it from your account.</p>' +
+        '</div></div>' +
+        '<div class="card-cute mt-3"><div class="card-body">' +
+          '<div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h6 mb-0">Order summary</h2>' + Mumu.statusPill(o.status) + '</div>' +
+          o.items.map(function (i) { return '<div class="sum-row small"><span>' + Mumu.esc(i.name) + ' × ' + i.qty + '</span><b>' + Mumu.money(i.price * i.qty) + '</b></div>'; }).join("") +
+          '<div class="sum-row small"><span>Shipping</span><b>' + (o.shipping ? Mumu.money(o.shipping) : "Free") + '</b></div>' +
+          '<div class="sum-row total"><span>Total</span><span class="text-pink">' + Mumu.money(o.total) + '</span></div>' +
+          '<div class="divider-dash my-3"></div><div class="small"><div class="small-caps mb-1">Delivering to</div><b>' + Mumu.esc(o.customer.name) + '</b><br>' +
+          Mumu.esc([o.address.line1, o.address.line2, o.address.landmark].filter(Boolean).join(", ")) + '<br>' + Mumu.esc(o.address.city + ", " + o.address.state + " " + o.address.pin) + '</div>' +
+        '</div></div>' +
+        '<div class="d-grid d-sm-flex gap-2 mt-3"><a href="shop.html" class="btn btn-pink flex-fill">Continue shopping</a>' +
+          (Mumu.user() ? '<a href="account.html" class="btn btn-soft flex-fill">View my orders</a>' : '<a href="login.html?next=account.html" class="btn btn-soft flex-fill d-inline-flex align-items-center justify-content-center gap-2">' + Mumu.googleIcon + ' Create an account</a>') + '</div>';
+      document.getElementById("copy").onclick = function () {
+        var b = this;
+        try { navigator.clipboard.writeText(o.id).then(function () { b.innerHTML = '<i class="bi bi-check2"></i> Copied'; }, function () { Mumu.toast("Order ID: " + o.id); }); }
+        catch (e) { Mumu.toast("Order ID: " + o.id); }
+      };
+    }
+  </script>
+</body>
+</html>

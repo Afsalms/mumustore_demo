@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Checkout · Mumu</title>
+  <link rel="icon" href="assets/img/favicon.png">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@500;700;800&display=swap">
+  <link rel="stylesheet" href="assets/vendor/bootstrap.min.css">
+  <link rel="stylesheet" href="assets/vendor/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="assets/css/mumu.css">
+</head>
+<body>
+  <div id="shellTop"></div>
+
+  <main class="container py-3 py-md-4" style="max-width:1080px">
+    <h1 class="h3 mb-3">Checkout</h1>
+    <div class="stepper mb-4" aria-label="Checkout steps">
+      <div class="s" id="st1"><span class="n">1</span>Account</div><div class="bar"></div>
+      <div class="s" id="st2"><span class="n">2</span>Address</div><div class="bar"></div>
+      <div class="s" id="st3"><span class="n">3</span>Done</div>
+    </div>
+    <div id="page"></div>
+  </main>
+
+  <div id="shellFoot"></div>
+
+  <script src="assets/vendor/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/art.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script>
+    Mumu.shell("cart");
+    var page = document.getElementById("page");
+    var STATES = ["Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chandigarh", "Chhattisgarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", "Karnataka", "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"];
+
+    function step(n) { [1, 2, 3].forEach(function (i) { document.getElementById("st" + i).classList.toggle("on", i <= n); }); }
+
+    function summary(lines, t) {
+      return '<div class="card-cute"><div class="card-body"><h2 class="h5 mb-3">Your order</h2>' +
+        lines.map(function (l) {
+          return '<div class="line-item"><div class="mini" style="width:54px;height:54px">' + MumuArt.svg(l.p) + '</div><div class="flex-grow-1 small"><div class="fw-bold">' + Mumu.esc(l.p.name) + '</div><div class="text-ink-soft fw-bold">Qty ' + l.qty + '</div></div><b class="small">' + Mumu.money(l.p.price * l.qty) + '</b></div>';
+        }).join("") +
+        '<div class="divider-dash my-3"></div>' +
+        '<div class="sum-row"><span>Subtotal</span><b>' + Mumu.money(t.sub) + '</b></div>' +
+        '<div class="sum-row"><span>Shipping</span><b>' + (t.ship ? Mumu.money(t.ship) : '<span class="text-success">Free</span>') + '</b></div>' +
+        '<div class="sum-row total"><span>Total</span><span class="text-pink">' + Mumu.money(t.total) + '</span></div>' +
+        '<a href="cart.html" class="small fw-bold text-decoration-none">Edit cart</a></div></div>';
+    }
+
+    function render() {
+      var lines = Mumu.cartLines(), t = Mumu.totals(lines), u = Mumu.user();
+      if (!lines.length) { step(0); page.innerHTML = '<div class="card-cute"><div class="empty"><h2 class="h5">Your cart is empty</h2><a href="shop.html" class="btn btn-pink mt-2">Go to shop</a></div></div>'; return; }
+
+      // Screen 1 — how do you want to check out?
+      if (!u && Mumu.ss.get("mumu_guest") !== "1") {
+        step(1);
+        page.innerHTML = '<div class="row g-4"><div class="col-12 col-lg-7"><div class="card-cute"><div class="card-body">' +
+          '<h2 class="h4 mb-1">How would you like to check out?</h2><p class="text-ink-soft fw-bold small mb-4">Both are quick — an account lets you track orders and keep a wishlist.</p>' +
+          '<a class="choice mb-3" href="login.html?reason=checkout&next=checkout.html"><div class="d-flex align-items-center gap-3"><span class="perk"><i class="bi bi-person-heart"></i></span><div class="flex-grow-1"><div class="fw-bold">Sign in or create an account</div><div class="small text-ink-soft">One tap with Google · saves your address</div></div>' + Mumu.googleIcon + '</div></a>' +
+          '<button type="button" class="choice w-100 text-start" id="guestBtn"><div class="d-flex align-items-center gap-3"><span class="perk"><i class="bi bi-bag"></i></span><div class="flex-grow-1"><div class="fw-bold">Continue as guest</div><div class="small text-ink-soft">No account needed — just your address</div></div><i class="bi bi-chevron-right"></i></div></button>' +
+          '</div></div></div><div class="col-12 col-lg-5">' + summary(lines, t) + '</div></div>';
+        document.getElementById("guestBtn").onclick = function () { Mumu.ss.set("mumu_guest", "1"); render(); window.scrollTo(0, 0); };
+        return;
+      }
+
+      // Screen 2 — contact and address
+      step(2);
+      var saved = u ? (function () { try { return JSON.parse(Mumu.ls.get("mumu_addr_" + u.email) || "null"); } catch (e) { return null; } })() : null;
+      var v = saved || { name: u ? u.name : "", phone: "", email: u ? u.email : "", address: {} };
+      var a = v.address || {};
+      var who = u
+        ? '<div class="d-flex align-items-center gap-2 mb-3 p-2 rounded-4 bg-blush"><img src="' + u.avatar + '" width="34" height="34" class="rounded-circle" alt=""><div class="small flex-grow-1"><b>' + Mumu.esc(u.name) + '</b><div class="text-ink-soft">' + Mumu.esc(u.email) + '</div></div><button type="button" class="btn btn-link btn-sm fw-bold" id="notMe">Not you?</button></div>'
+        : '<div class="d-flex align-items-center gap-2 mb-3 p-2 rounded-4 bg-blush small"><i class="bi bi-person ms-1"></i><span class="flex-grow-1 fw-bold">Checking out as a guest</span><a class="btn btn-link btn-sm fw-bold" href="login.html?reason=checkout&next=checkout.html">Sign in instead</a></div>';
+      function f(id, label, val, attrs, col, help) {
+        return '<div class="' + (col || "col-12") + '"><label class="form-label" for="' + id + '">' + label + '</label><input class="form-control" id="' + id + '" name="' + id + '" value="' + Mumu.esc(val || "") + '" ' + (attrs || "") + '>' + (help ? '<div class="form-text">' + help + '</div>' : "") + '<div class="invalid-feedback" data-for="' + id + '"></div></div>';
+      }
+      page.innerHTML = '<form id="form" novalidate><div class="row g-4"><div class="col-12 col-lg-7">' +
+        '<div class="card-cute mb-3"><div class="card-body">' + who + '<h2 class="h5 mb-3">Contact</h2><div class="row g-3">' +
+          f("name", "Full name", v.name, 'required autocomplete="name" maxlength="60"') +
+          f("phone", "WhatsApp number", v.phone, 'required inputmode="numeric" autocomplete="tel-national" pattern="[6-9][0-9]{9}" maxlength="10" placeholder="10-digit mobile"', "col-12 col-md-6", "We’ll confirm your order here 💬") +
+          f("email", "Email " + (u ? "" : '<span class="text-ink-soft fw-normal">(optional)</span>'), v.email, 'type="email" autocomplete="email"' + (u ? " readonly" : ""), "col-12 col-md-6") +
+        '</div></div></div>' +
+        '<div class="card-cute"><div class="card-body"><h2 class="h5 mb-3">Delivery address</h2><div class="row g-3">' +
+          f("line1", "House / flat, building", a.line1, 'required autocomplete="address-line1" maxlength="80"') +
+          f("line2", "Street, area", a.line2, 'required autocomplete="address-line2" maxlength="80"') +
+          f("landmark", 'Landmark <span class="text-ink-soft fw-normal">(optional)</span>', a.landmark, 'maxlength="60"') +
+          f("city", "City / town", a.city, 'required autocomplete="address-level2" maxlength="40"', "col-12 col-md-6") +
+          f("pin", "PIN code", a.pin, 'required inputmode="numeric" autocomplete="postal-code" pattern="[1-9][0-9]{5}" maxlength="6"', "col-6 col-md-3") +
+          '<div class="col-6 col-md-3"><label class="form-label" for="state">State</label><select class="form-select" id="state" required><option value="">Choose…</option>' + STATES.map(function (s) { return '<option' + (s === (a.state || "Kerala") ? " selected" : "") + '>' + s + '</option>'; }).join("") + '</select><div class="invalid-feedback">Choose your state.</div></div>' +
+          '<div class="col-12"><label class="form-label" for="note">Order note <span class="text-ink-soft fw-normal">(optional)</span></label><textarea class="form-control" id="note" rows="2" maxlength="200" placeholder="Gift wrap? A message for the card?"></textarea></div>' +
+          (u ? '<div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="saveAddr" checked><label class="form-check-label small fw-bold" for="saveAddr">Save this address for next time</label></div></div>' : "") +
+        '</div></div></div>' +
+        '</div><div class="col-12 col-lg-5">' + summary(lines, t) +
+          '<div class="card-cute mt-3"><div class="card-body"><div class="perk mb-3"><i class="bi bi-whatsapp"></i><span>No payment now. After you place the order we’ll message you on WhatsApp to confirm and share UPI / payment details.</span></div>' +
+          '<div id="problems"></div><button class="btn btn-pink btn-lg w-100" type="submit" id="placeBtn">Place order · ' + Mumu.money(t.total) + '</button></div></div>' +
+        '</div></div></form>';
+
+      var nm = document.getElementById("notMe"); if (nm) nm.onclick = function () { Mumu.signOut(); Mumu.ss.del("mumu_guest"); location.reload(); };
+      var msgs = { name: "Tell us your name.", phone: "Enter a 10-digit mobile number starting 6–9.", email: "That email doesn’t look right.", line1: "Add your house or flat.", line2: "Add the street or area.", city: "Add your city.", pin: "Enter a 6-digit PIN code." };
+      var form = document.getElementById("form");
+      form.querySelectorAll("input").forEach(function (i) { i.addEventListener("input", function () { if (form.classList.contains("was-validated")) check(); }); });
+      function check() {
+        form.querySelectorAll(".invalid-feedback[data-for]").forEach(function (el) { el.textContent = msgs[el.dataset.for] || "Please check this."; });
+        return form.checkValidity();
+      }
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        form.classList.add("was-validated");
+        if (!check()) { var bad = form.querySelector(":invalid"); if (bad) bad.focus(); return; }
+        var val = function (id) { return document.getElementById(id).value.trim(); };
+        var info = { name: val("name"), phone: val("phone"), email: val("email"), note: val("note"),
+          address: { line1: val("line1"), line2: val("line2"), landmark: val("landmark"), city: val("city"), state: val("state"), pin: val("pin") } };
+        var btn = document.getElementById("placeBtn"); btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Placing order…';
+        setTimeout(function () {
+          var r = Mumu.placeOrder(info);
+          if (!r.ok) {
+            btn.disabled = false; btn.textContent = "Place order";
+            document.getElementById("problems").innerHTML = '<div class="alert alert-warning rounded-4 small fw-bold">' + r.problems.map(Mumu.esc).join("<br>") + '<br><a href="cart.html">Review your cart</a></div>';
+            return;
+          }
+          if (u && document.getElementById("saveAddr") && document.getElementById("saveAddr").checked) Mumu.ls.set("mumu_addr_" + u.email, JSON.stringify({ name: info.name, phone: info.phone, email: info.email, address: info.address }));
+          Mumu.ss.del("mumu_guest");
+          Mumu.go("order-success.html?id=" + r.id);
+        }, 500);
+      });
+    }
+    render();
+  </script>
+</body>
+</html>

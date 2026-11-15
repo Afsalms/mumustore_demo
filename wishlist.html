@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wishlist · Mumu</title>
+  <link rel="icon" href="assets/img/favicon.png">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@500;700;800&display=swap">
+  <link rel="stylesheet" href="assets/vendor/bootstrap.min.css">
+  <link rel="stylesheet" href="assets/vendor/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="assets/css/mumu.css">
+</head>
+<body>
+  <div id="shellTop"></div>
+
+  <main class="container py-3 py-md-4">
+    <h1 class="h3 mb-3">Your wishlist <i class="bi bi-heart-fill text-pink"></i></h1>
+    <div id="page"></div>
+  </main>
+
+  <div id="shellFoot"></div>
+
+  <script src="assets/vendor/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/art.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script>
+    Mumu.shell("wishlist");
+    var page = document.getElementById("page");
+    function render() {
+      var u = Mumu.user();
+      if (!u) {
+        page.innerHTML = '<div class="card-cute"><div class="empty"><div class="art float">' + MumuArt.svg({ art: { type: "bookmark", c1: "#f7a8c8", c2: "#f78b9b", bg: "#fff" } }) + '</div>' +
+          '<h2 class="h5">Keep a list of things you love</h2><p class="text-ink-soft fw-bold small">Create a free account with Google to save favourites and find them on any device.</p>' +
+          '<a class="btn btn-google d-inline-flex align-items-center gap-2" href="login.html?reason=wishlist&next=wishlist.html">' + Mumu.googleIcon + ' Continue with Google</a></div></div>';
+        return;
+      }
+      var db = Mumu.db(), list = Mumu.wish().map(function (id) { return Mumu.product(id, db); }).filter(function (p) { return p && p.active; });
+      if (!list.length) {
+        page.innerHTML = '<div class="card-cute"><div class="empty"><div class="art">' + MumuArt.svg({ art: { type: "sticker", c1: "#ffc6a8", c2: "#f78b9b", bg: "#fff" } }) + '</div><h2 class="h5">No favourites yet</h2><p class="text-ink-soft fw-bold small">Tap the <i class="bi bi-heart"></i> on anything you love.</p><a href="shop.html" class="btn btn-pink">Browse the shop</a></div></div>';
+        return;
+      }
+      var inStock = list.filter(function (p) { return p.stock > 0; });
+      page.innerHTML = '<div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3"><span class="fw-bold small text-ink-soft">' + list.length + ' saved · ' + inStock.length + ' in stock</span>' +
+        (inStock.length ? '<button class="btn btn-soft btn-sm" id="addAll"><i class="bi bi-bag-plus"></i> Add all in stock to cart</button>' : "") + '</div>' +
+        '<div class="row g-3 row-cols-2 row-cols-md-3 row-cols-lg-4">' + list.map(function (p) { return '<div class="col">' + Mumu.productCard(p) + '</div>'; }).join("") + '</div>';
+      var all = document.getElementById("addAll");
+      if (all) all.onclick = function () { inStock.forEach(function (p) { Mumu.addToCart(p.id, 1); }); Mumu.toast(inStock.length + " items added to cart 🛍️"); };
+    }
+    document.addEventListener("mumu:wish", render);
+    render();
+  </script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Product · Mumu</title>
+  <link rel="icon" href="assets/img/favicon.png">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@500;700;800&display=swap">
+  <link rel="stylesheet" href="assets/vendor/bootstrap.min.css">
+  <link rel="stylesheet" href="assets/vendor/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="assets/css/mumu.css">
+  <style>@media (max-width: 991.98px) { main { padding-bottom: 80px; } }</style>
+</head>
+<body>
+  <div id="shellTop"></div>
+
+  <main class="container py-3 py-md-4" id="page"></main>
+
+  <div id="shellFoot"></div>
+
+  <script src="assets/vendor/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/art.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/store.js"></script>
+  <script>
+    Mumu.shell("shop");
+    var db = Mumu.db(), p = Mumu.product(Mumu.param("id") || 1, db), page = document.getElementById("page");
+
+    if (!p || !p.active) {
+      page.innerHTML = '<div class="empty"><h1 class="h4">We couldn’t find that product</h1><a class="btn btn-pink mt-2" href="shop.html">Back to shop</a></div>';
+    } else {
+      document.title = p.name + " · Mumu";
+      var cat = Mumu.category(p.cat, db), out = p.stock <= 0, low = !out && p.stock <= p.low;
+      var off = p.mrp > p.price ? Math.round((1 - p.price / p.mrp) * 100) : 0;
+      var inCart = (Mumu.cart().filter(function (l) { return l.id === p.id; })[0] || { qty: 0 }).qty;
+      var related = db.products.filter(function (x) { return x.active && x.id !== p.id && (x.cat === p.cat || x.theme === p.theme); }).slice(0, 4);
+
+      page.innerHTML =
+        '<nav aria-label="breadcrumb"><ol class="breadcrumb mb-3"><li class="breadcrumb-item"><a href="shop.html">Shop</a></li><li class="breadcrumb-item"><a href="shop.html?cat=' + p.cat + '">' + cat.name + '</a></li><li class="breadcrumb-item active text-truncate" style="max-width:40vw">' + Mumu.esc(p.name) + '</li></ol></nav>' +
+        '<div class="row g-4 g-lg-5">' +
+          '<div class="col-12 col-md-6"><div class="pd-art position-relative">' + MumuArt.svg(p) + (out ? '<div class="soldout-tag"><span class="fs-6">Sold out</span></div>' : "") + '</div></div>' +
+          '<div class="col-12 col-md-6">' +
+            '<span class="small-caps">' + cat.name + ' · ' + p.theme + '</span>' +
+            '<h1 class="h2 mt-1 mb-2">' + Mumu.esc(p.name) + '</h1>' +
+            '<div class="d-flex align-items-center gap-2 mb-2"><span class="price fs-3">' + Mumu.money(p.price) + '</span>' + (off ? '<span class="mrp fs-6">' + Mumu.money(p.mrp) + '</span><span class="pill pill-new">Save ' + off + '%</span>' : "") + '</div>' +
+            '<div class="mb-3">' + (out ? '<span class="pill pill-out"><i class="bi bi-x-octagon"></i>Sold out — back soon</span>' : low ? '<span class="pill pill-low"><i class="bi bi-hourglass-split"></i>Hurry, only ' + p.stock + ' left!</span>' : '<span class="pill pill-ok"><i class="bi bi-check2"></i>In stock</span>') + '</div>' +
+            '<p class="fw-bold text-ink-soft">' + Mumu.esc(p.desc) + '</p>' +
+            (inCart ? '<div class="small fw-bold mb-2 text-pink"><i class="bi bi-bag-check"></i> ' + inCart + ' already in your cart</div>' : "") +
+            '<div class="sticky-action"><div class="d-flex gap-2 align-items-center">' +
+              (out
+                ? '<a class="btn btn-whatsapp flex-grow-1" href="' + Mumu.waLink(Mumu.STORE_WA, "Hi Mumu! Please tell me when “" + p.name + "” is back in stock 🐰") + '"><i class="bi bi-whatsapp me-1"></i> Notify me on WhatsApp</a>'
+                : '<div class="qty" role="group" aria-label="Quantity"><button type="button" id="minus" aria-label="Less">−</button><input id="qty" type="number" inputmode="numeric" value="1" min="1" max="' + Math.max(1, p.stock - inCart) + '" aria-label="Quantity"><button type="button" id="plus" aria-label="More">+</button></div>' +
+                  '<button class="btn btn-pink flex-grow-1" id="addBtn"' + (p.stock - inCart <= 0 ? " disabled" : "") + '><i class="bi bi-bag-plus me-1"></i> ' + (p.stock - inCart <= 0 ? "All stock in cart" : "Add to cart") + '</button>') +
+              '<button class="btn btn-soft btn-icon flex-shrink-0 wish-btn' + (Mumu.isWished(p.id) ? " on" : "") + '" data-wish="' + p.id + '" aria-label="Save to wishlist"><i class="bi ' + (Mumu.isWished(p.id) ? "bi-heart-fill" : "bi-heart") + '"></i></button>' +
+            '</div></div>' +
+            '<div class="card-cute mt-4"><div class="card-body d-grid gap-3">' +
+              '<div class="perk"><i class="bi bi-truck"></i>Free shipping above ₹499 · ₹49 otherwise</div>' +
+              '<div class="perk"><i class="bi bi-whatsapp"></i>No online payment now — we confirm on WhatsApp</div>' +
+              '<div class="perk"><i class="bi bi-gift"></i>A surprise sticker in every parcel</div>' +
+            '</div></div>' +
+            '<div class="small text-ink-soft fw-bold mt-3">SKU ' + p.sku + '</div>' +
+          '</div>' +
+        '</div>' +
+        (related.length ? '<section class="mt-5"><h2 class="h4 section-title">You may also love</h2><div class="row g-3 row-cols-2 row-cols-md-4">' + related.map(function (x) { return '<div class="col">' + Mumu.productCard(x) + '</div>'; }).join("") + '</div></section>' : "");
+
+      if (!out) {
+        var q = document.getElementById("qty"), max = Math.max(1, p.stock - inCart);
+        var sync = function () { var v = Math.min(max, Math.max(1, parseInt(q.value, 10) || 1)); q.value = v; document.getElementById("minus").disabled = v <= 1; document.getElementById("plus").disabled = v >= max; };
+        document.getElementById("minus").onclick = function () { q.value = +q.value - 1; sync(); };
+        document.getElementById("plus").onclick = function () { q.value = +q.value + 1; sync(); };
+        q.onchange = sync; sync();
+        document.getElementById("addBtn").onclick = function () { if (Mumu.addToCart(p.id, +q.value)) setTimeout(function () { location.reload(); }, 700); };
+      }
+      document.addEventListener("mumu:wish", function () { var b = document.querySelector(".wish-btn i"); if (b) b.className = "bi " + (Mumu.isWished(p.id) ? "bi-heart-fill" : "bi-heart"); });
+    }
+  </script>
+</body>
+</html>
